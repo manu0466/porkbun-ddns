@@ -4,6 +4,8 @@ mod porkbun;
 use crate::config::config::Config;
 use crate::porkbun::client::PorkbunClient;
 use clap::{Parser, Subcommand};
+use eyre::Context;
+use std::fs;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -68,6 +70,32 @@ fn update_domains(config_path: &str) -> eyre::Result<()> {
 
 fn get_certificates(config_path: &str) -> eyre::Result<()> {
     let config = Config::from_yaml(config_path)?;
-    println!("{}", config.api_key);
+    let client = PorkbunClient::new(config.api_key.into(), config.api_secret.into());
+    let response = client.ssl_retrieve_bundle_by_domain(&config.domain)?;
+
+    fs::write(
+        format!("{}/{}", config.ssl_path, "certificate_chain.pub"),
+        response.certificate_chain,
+    )
+    .context("write certificate_chain.pub")?;
+
+    fs::write(
+        format!("{}/{}", config.ssl_path, "intermediate_certificate.pub"),
+        response.intermediate_certificate,
+    )
+    .context("write intermediate_certificate.pub")?;
+
+    fs::write(
+        format!("{}/{}", config.ssl_path, "private_key.pub"),
+        response.private_key,
+    )
+    .context("write private_key.pub")?;
+
+    fs::write(
+        format!("{}/{}", config.ssl_path, "public_key.pub"),
+        response.public_key,
+    )
+    .context("write certificate_chain.pub")?;
+
     Ok(())
 }

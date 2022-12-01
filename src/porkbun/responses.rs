@@ -35,3 +35,16 @@ pub struct CrateRecordResponse {
     pub status: String,
     pub id: u64,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct SSLRetrieveBundleResponse {
+    pub status: String,
+    #[serde(rename = "intermediatecertificate")]
+    pub intermediate_certificate: String,
+    #[serde(rename = "certificatechain")]
+    pub certificate_chain: String,
+    #[serde(rename = "privatekey")]
+    pub private_key: String,
+    #[serde(rename = "publickey")]
+    pub public_key: String,
+}

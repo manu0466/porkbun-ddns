@@ -1,9 +1,10 @@
 use crate::porkbun::requests::{Auth, CreateRecord};
 use crate::porkbun::responses::{
     CrateRecordResponse, DeleteRecordResponse, PingResponse, RetrieveRecordsResponse,
+    SSLRetrieveBundleResponse,
 };
 use eyre::{eyre, Context, Result};
-use reqwest::blocking::RequestBuilder;
+use reqwest::blocking::{Client, RequestBuilder};
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use serde_json;
@@ -49,7 +50,7 @@ impl PorkbunClient {
     }
 
     pub fn ping(&self) -> Result<PingResponse> {
-        let request = reqwest::blocking::Client::new()
+        let request = Client::new()
             .post(format!("{}/ping", self.endpoint))
             .body(serde_json::to_string(&self.auth()).context("auth serialization")?);
 
@@ -66,7 +67,7 @@ impl PorkbunClient {
             url = format!("{}/{}", url, id);
         }
 
-        let request = reqwest::blocking::Client::new()
+        let request = Client::new()
             .post(url)
             .body(serde_json::to_string(&self.auth()).context("auth serialization")?);
 
@@ -78,7 +79,7 @@ impl PorkbunClient {
         domain: &str,
         id: &str,
     ) -> Result<DeleteRecordResponse> {
-        let request = reqwest::blocking::Client::new()
+        let request = Client::new()
             .post(format!("{}/dns/delete/{}/{}", self.endpoint, domain, id))
             .body(serde_json::to_string(&self.auth()).context("auth serialization")?);
         self.send(request).context("delete record")
@@ -92,7 +93,7 @@ impl PorkbunClient {
         content: &str,
         ttl: &str,
     ) -> Result<CrateRecordResponse> {
-        let request = reqwest::blocking::Client::new()
+        let request = Client::new()
             .post(format!("{}/dns/create/{}", self.endpoint, domain))
             .body(
                 serde_json::to_string(&CreateRecord {
@@ -105,5 +106,12 @@ impl PorkbunClient {
                 .context("create record serialization")?,
             );
         self.send(request).context("create record")
+    }
+
+    pub fn ssl_retrieve_bundle_by_domain(&self, domain: &str) -> Result<SSLRetrieveBundleResponse> {
+        let request = Client::new()
+            .post(format!("{}/ssl/retrieve/{}", self.endpoint, domain))
+            .body(serde_json::to_string(&self.auth())?);
+        self.send(request).context("retrieve ssl bundle")
     }
 }
