@@ -2,7 +2,7 @@
 
 A simple Porkbun client capable of updating the IPs of your subdomains
 and download the SSL certificates associated to your domain.  
-This client uses the [Porkbun v3API](https://porkbun.com/api/json/v3/documentation) to 
+This client uses the [Porkbun v3 API](https://porkbun.com/api/json/v3/documentation) to 
 update the DNS record and download the certificates.
 
 ## Configurations
