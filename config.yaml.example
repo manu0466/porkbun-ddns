@@ -1,7 +1,7 @@
 api_key: "api_key"
 api_secret: "api_secret"
-domains:
-  - "test1"
-  - "test2"
-  - "test32"
-ssl_path: "path"
+domain: "domain.com"
+sub_domains:
+  - sub1
+  - sub2
+ssl_path: "./ssl"
