@@ -818,7 +818,9 @@ dependencies = [
  "clap",
  "eyre",
  "porkbun-rs",
+ "reqwest",
  "serde",
+ "serde_json",
  "serde_yaml",
 ]
 

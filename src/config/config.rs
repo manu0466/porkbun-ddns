@@ -6,7 +6,8 @@ use std::fs::File;
 pub struct Config {
     pub api_key: String,
     pub api_secret: String,
-    pub domains: Vec<String>,
+    pub domain: String,
+    pub sub_domains: Vec<String>,
     pub ssl_path: String,
 }
 
