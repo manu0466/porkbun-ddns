@@ -72,25 +72,53 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
     let response = client.ssl_retrieve_bundle_by_domain(&config.domain)?;
 
     fs::write(
-        format!("{}/{}", config.ssl_path, "certificate_chain.pub"),
+        format!(
+            "{}/{}",
+            &config.ssl.path,
+            config
+                .ssl
+                .certificate_chain
+                .unwrap_or("domain.cert.pem".to_string())
+        ),
         response.certificate_chain,
     )
     .context("write certificate_chain.pub")?;
 
     fs::write(
-        format!("{}/{}", config.ssl_path, "intermediate_certificate.pub"),
+        format!(
+            "{}/{}",
+            &config.ssl.path,
+            config
+                .ssl
+                .intermediate_certificate
+                .unwrap_or("intermediate.cert.pem".to_string())
+        ),
         response.intermediate_certificate,
     )
     .context("write intermediate_certificate.pub")?;
 
     fs::write(
-        format!("{}/{}", config.ssl_path, "private_key.pub"),
+        format!(
+            "{}/{}",
+            &config.ssl.path,
+            config
+                .ssl
+                .private_key
+                .unwrap_or("private.key.pem".to_string())
+        ),
         response.private_key,
     )
     .context("write private_key.pub")?;
 
     fs::write(
-        format!("{}/{}", config.ssl_path, "public_key.pub"),
+        format!(
+            "{}/{}",
+            &config.ssl.path,
+            config
+                .ssl
+                .public_key
+                .unwrap_or("public.key.pem".to_string())
+        ),
         response.public_key,
     )
     .context("write certificate_chain.pub")?;

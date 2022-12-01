@@ -4,4 +4,9 @@ domain: "domain.com"
 sub_domains:
   - sub1
   - sub2
-ssl_path: "./ssl"
+ssl:
+  path: "./ssl"
+  certificate_chain: "domain.cert.pem"
+  intermediate_certificate: "intermediate.cert.pem"
+  private_key: "private.key.pem"
+  public_key: "public.key.pem"
