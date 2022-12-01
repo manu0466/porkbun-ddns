@@ -1,7 +1,7 @@
 mod config;
 mod porkbun;
 
-use crate::config::config::Config;
+use crate::config::Config;
 use crate::porkbun::client::PorkbunClient;
 use clap::{Parser, Subcommand};
 use eyre::Context;
@@ -23,10 +23,10 @@ enum Commands {
 fn main() -> eyre::Result<()> {
     let cli: Cli = Cli::parse();
 
-    return match &cli.command {
+    match &cli.command {
         Commands::UpdateDomains { config } => update_domains(config),
         Commands::GetCertificates { config } => get_certificates(config),
-    };
+    }
 }
 
 fn update_domains(config_path: &str) -> eyre::Result<()> {
@@ -41,11 +41,7 @@ fn update_domains(config_path: &str) -> eyre::Result<()> {
         .collect::<Vec<String>>();
 
     for record in records_response.records.iter().filter(|record| {
-        record.record_type == "A"
-            && domains
-                .iter()
-                .find(|domain| *domain == &record.name)
-                .is_some()
+        record.record_type == "A" && domains.iter().any(|domain| domain == &record.name)
     }) {
         println!("Deleting record {}", record.name);
         client.delete_record_by_domain_and_id(&config.domain, &record.id)?;

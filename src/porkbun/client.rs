@@ -17,7 +17,7 @@ pub struct PorkbunClient {
 }
 
 impl PorkbunClient {
-    pub fn new<'a>(api_key: Cow<'static, str>, api_secret: Cow<'static, str>) -> Self {
+    pub fn new(api_key: Cow<'static, str>, api_secret: Cow<'static, str>) -> Self {
         PorkbunClient {
             api_key,
             api_secret,
