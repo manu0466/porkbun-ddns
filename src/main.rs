@@ -32,7 +32,9 @@ fn main() -> eyre::Result<()> {
 fn update_domains(config_path: &str) -> eyre::Result<()> {
     let config = Config::from_yaml(config_path)?;
     let client = PorkbunClient::new(config.api_key.into(), config.api_secret.into());
+    println!("Getting device ip...");
     let ping_response = client.ping()?;
+    println!("Device ip: {}", &ping_response.your_ip);
     let records_response = client.retrieve_records(&config.domain, None)?;
     let domains = config
         .sub_domains
