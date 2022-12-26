@@ -3,6 +3,7 @@ mod porkbun;
 
 use crate::config::Config;
 use crate::porkbun::client::PorkbunClient;
+use crate::porkbun::responses::DnsRecord;
 use clap::{Parser, Subcommand};
 use eyre::Context;
 use std::fs;
@@ -32,35 +33,70 @@ fn main() -> eyre::Result<()> {
 fn update_domains(config_path: &str) -> eyre::Result<()> {
     let config = Config::from_yaml(config_path)?;
     let client = PorkbunClient::new(config.api_key.into(), config.api_secret.into());
+
     println!("Getting device ip...");
-    let ping_response = client.ping()?;
-    println!("Device ip: {}", &ping_response.your_ip);
-    let records_response = client.retrieve_records(&config.domain, None)?;
-    let domains = config
+    let my_ip = client.ping()?.your_ip;
+    println!("Device ip: {}", &my_ip);
+
+    let a_dns_domain_records = client
+        .retrieve_records(&config.domain, None)?
+        .records
+        .drain(0..)
+        .filter(|record| record.record_type == "A")
+        .collect::<Vec<DnsRecord>>();
+
+    let config_domains_sub_domains = config
         .sub_domains
         .iter()
-        .map(|domain| format!("{}.{}", domain, config.domain))
-        .collect::<Vec<String>>();
+        .map(|sub_domain| {
+            (
+                format!("{}.{}", &sub_domain, config.domain),
+                sub_domain.to_owned(),
+            )
+        })
+        .collect::<Vec<(String, String)>>();
 
-    for record in records_response.records.iter().filter(|record| {
-        record.record_type == "A" && domains.iter().any(|domain| domain == &record.name)
-    }) {
-        println!("Deleting record {}", record.name);
-        client.delete_record_by_domain_and_id(&config.domain, &record.id)?;
+    let records_to_create = config_domains_sub_domains.iter().filter(|(domain, _)| {
+        !a_dns_domain_records
+            .iter()
+            .any(|dns_record| dns_record.name.eq(domain))
+    });
+
+    let records_to_delete = a_dns_domain_records.iter().filter(|dns_record| {
+        config_domains_sub_domains
+            .iter()
+            .any(|(domain, _)| dns_record.name.eq(domain))
+    });
+
+    let records_to_update = a_dns_domain_records.iter().filter(|dns_record| {
+        dns_record.content != my_ip
+            && !records_to_delete
+                .clone()
+                .any(|record| dns_record.id.eq(&record.id))
+    });
+
+    // Create the new domains
+    for (domain, sub_domain) in records_to_create {
+        println!("Creating new A record entry {}", domain);
+        client.create_record(&config.domain, sub_domain, "A", &my_ip, "600")?;
     }
 
-    for sub_domain in config.sub_domains {
-        println!(
-            "Creating record for {}.{} with ip: {}",
-            &sub_domain, &config.domain, &ping_response.your_ip
-        );
-        client.create_record(
+    // Update records
+    for record_to_update in records_to_update {
+        println!("Updating record {}", &record_to_update.name);
+        client.edit_record_by_domain_and_id(
             &config.domain,
-            &sub_domain,
-            "A",
-            &ping_response.your_ip,
-            "600",
+            &record_to_update.id,
+            &record_to_update.name,
+            &record_to_update.record_type,
+            &my_ip,
         )?;
+    }
+
+    // Delete the obsolete records
+    for dns_records in records_to_delete {
+        println!("Deleting record with id {}", &dns_records.id);
+        client.delete_record_by_domain_and_id(&config.domain, &dns_records.id)?;
     }
 
     Ok(())
@@ -78,7 +114,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .certificate_chain
-                .unwrap_or("domain.cert.pem".to_string())
+                .unwrap_or_else(|| "domain.cert.pem".to_string())
         ),
         response.certificate_chain,
     )
@@ -91,7 +127,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .intermediate_certificate
-                .unwrap_or("intermediate.cert.pem".to_string())
+                .unwrap_or_else(|| "intermediate.cert.pem".to_string())
         ),
         response.intermediate_certificate,
     )
@@ -104,7 +140,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .private_key
-                .unwrap_or("private.key.pem".to_string())
+                .unwrap_or_else(|| "private.key.pem".to_string())
         ),
         response.private_key,
     )
@@ -117,7 +153,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .public_key
-                .unwrap_or("public.key.pem".to_string())
+                .unwrap_or_else(|| "public.key.pem".to_string())
         ),
         response.public_key,
     )
