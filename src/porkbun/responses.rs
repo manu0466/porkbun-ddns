@@ -37,6 +37,11 @@ pub struct CrateRecordResponse {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct EditRecordByDomainAndIdResponse {
+    pub status: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct SSLRetrieveBundleResponse {
     pub status: String,
     #[serde(rename = "intermediatecertificate")]

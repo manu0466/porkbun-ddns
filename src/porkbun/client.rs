@@ -1,7 +1,7 @@
-use crate::porkbun::requests::{Auth, CreateRecord};
+use crate::porkbun::requests::{Auth, CreateRecord, EditRecord};
 use crate::porkbun::responses::{
-    CrateRecordResponse, DeleteRecordResponse, PingResponse, RetrieveRecordsResponse,
-    SSLRetrieveBundleResponse,
+    CrateRecordResponse, DeleteRecordResponse, EditRecordByDomainAndIdResponse, PingResponse,
+    RetrieveRecordsResponse, SSLRetrieveBundleResponse,
 };
 use eyre::{eyre, Context, Result};
 use reqwest::blocking::{Client, RequestBuilder};
@@ -106,6 +106,30 @@ impl PorkbunClient {
                 .context("create record serialization")?,
             );
         self.send(request).context("create record")
+    }
+
+    pub fn edit_record_by_domain_and_id(
+        &self,
+        domain: &str,
+        id: &str,
+        name: &str,
+        record_type: &str,
+        content: &str,
+    ) -> Result<EditRecordByDomainAndIdResponse> {
+        let request = Client::new()
+            .post(format!("{}/dns/edit/{}/{}", self.endpoint, domain, id))
+            .body(
+                serde_json::to_string(&EditRecord {
+                    auth: self.auth(),
+                    name: name.to_string(),
+                    record_type: record_type.to_string(),
+                    content: content.to_string(),
+                    ttl: None,
+                    prio: None,
+                })
+                .context("edit record post body serialization")?,
+            );
+        self.send(request).context("edit request record")
     }
 
     pub fn ssl_retrieve_bundle_by_domain(&self, domain: &str) -> Result<SSLRetrieveBundleResponse> {
