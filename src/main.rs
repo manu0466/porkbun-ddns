@@ -6,7 +6,11 @@ use crate::porkbun::client::PorkbunClient;
 use crate::porkbun::responses::DnsRecord;
 use clap::{Parser, Subcommand};
 use eyre::Context;
+use openssl::asn1::Asn1Time;
+use openssl::x509::X509;
 use std::fs;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -19,6 +23,7 @@ struct Cli {
 enum Commands {
     UpdateDomains { config: String },
     GetCertificates { config: String },
+    MonitorCertificate { config: String },
 }
 
 const DEFAULT_CERTIFICATE_CHAIN: &str = "domain.cert.pem";
@@ -32,6 +37,7 @@ fn main() -> eyre::Result<()> {
     match &cli.command {
         Commands::UpdateDomains { config } => update_domains(config),
         Commands::GetCertificates { config } => get_certificates(config),
+        Commands::MonitorCertificate { config } => check_certificate(config),
     }
 }
 
@@ -165,4 +171,49 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
     .context("write certificate_chain.pub")?;
 
     Ok(())
+}
+
+fn check_certificate(config_path: &str) -> eyre::Result<()> {
+    let config = Config::from_yaml(config_path)?;
+    let ssl_cert_path = format!(
+        "{}/{}",
+        &config.ssl.path,
+        config
+            .ssl
+            .certificate_chain
+            .unwrap_or_else(|| DEFAULT_CERTIFICATE_CHAIN.to_string())
+    );
+
+    loop {
+        let ssl_cert_bytes = fs::read(&ssl_cert_path).context("reading ssl certificate")?;
+        let certificate = X509::from_pem(ssl_cert_bytes.as_slice())?;
+        let certificate_expiration = certificate.not_after();
+        let threshold = Asn1Time::days_from_now(0).unwrap();
+        let time_dif = threshold.diff(&certificate_expiration)?;
+
+        if time_dif.days < 10 {
+            let result = get_certificates(config_path);
+            if result.is_err() {
+                println!(
+                    "failed to update the certificates {}",
+                    result.unwrap_err().to_string()
+                );
+                sleep(Duration::from_secs(30))
+            }
+        } else {
+            println!(
+                "certificate expires on: {}",
+                certificate_expiration.to_string()
+            );
+            let sleep_duration = Duration::from_secs(
+                u64::try_from(time_dif.days - 10).context(format!(
+                    "converting i32 to u64, value: {}",
+                    time_dif.days - 20
+                ))? * 24
+                    * 3600,
+            );
+            println!("next update in: {} seconds", sleep_duration.as_secs());
+            sleep(sleep_duration);
+        }
+    }
 }
