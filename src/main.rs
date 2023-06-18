@@ -21,6 +21,11 @@ enum Commands {
     GetCertificates { config: String },
 }
 
+const DEFAULT_CERTIFICATE_CHAIN: &str = "domain.cert.pem";
+const DEFAULT_INTERMEDIATE_CERTIFICATE: &str = "intermediate.cert.pem";
+const DEFAULT_PRIVATE_KEY: &str = "private.key.pem";
+const DEFAULT_PUBLIC_KEY: &str = "public.key.pem";
+
 fn main() -> eyre::Result<()> {
     let cli: Cli = Cli::parse();
 
@@ -114,7 +119,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .certificate_chain
-                .unwrap_or_else(|| "domain.cert.pem".to_string())
+                .unwrap_or_else(|| DEFAULT_CERTIFICATE_CHAIN.to_string())
         ),
         response.certificate_chain,
     )
@@ -127,7 +132,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .intermediate_certificate
-                .unwrap_or_else(|| "intermediate.cert.pem".to_string())
+                .unwrap_or_else(|| DEFAULT_INTERMEDIATE_CERTIFICATE.to_string())
         ),
         response.intermediate_certificate,
     )
@@ -140,7 +145,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .private_key
-                .unwrap_or_else(|| "private.key.pem".to_string())
+                .unwrap_or_else(|| DEFAULT_PRIVATE_KEY.to_string())
         ),
         response.private_key,
     )
@@ -153,7 +158,7 @@ fn get_certificates(config_path: &str) -> eyre::Result<()> {
             config
                 .ssl
                 .public_key
-                .unwrap_or_else(|| "public.key.pem".to_string())
+                .unwrap_or_else(|| DEFAULT_PUBLIC_KEY.to_string())
         ),
         response.public_key,
     )
